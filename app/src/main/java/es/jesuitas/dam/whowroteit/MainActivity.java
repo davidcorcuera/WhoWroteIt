@@ -1,6 +1,9 @@
 package es.jesuitas.dam.whowroteit;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -11,11 +14,21 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.lang.ref.WeakReference;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class MainActivity extends AppCompatActivity {
 
     private EditText mBookInput;
     private TextView mTitleText;
     private TextView mAuthorText;
+    private final int NUMBER_OF_THREADS = 4;
+    public static ExecutorService fetchBookExecutor;
+    private BookViewModel mBookViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,42 +39,25 @@ public class MainActivity extends AppCompatActivity {
         mTitleText = findViewById(R.id.titleText);
         mAuthorText = findViewById(R.id.authorText);
 
+        // Get a new or existing ViewModel from the ViewModelProvider.
+        mBookViewModel = new ViewModelProvider(this).get(BookViewModel.class);
+
+        // If Author changed, update View
+        mBookViewModel.getAuthor().observe(this, author -> mAuthorText.setText(author));
+
+        //If Title changed, update View
+        mBookViewModel.getTitle().observe(this, title -> mTitleText.setText(title));
+
+        // Create 4 Threads pool
+        fetchBookExecutor =
+                Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+
     }
 
     public void searchBooks(View view) {
         // Get the search string from the input field.
         String queryString = mBookInput.getText().toString();
-
-        InputMethodManager inputManager = (InputMethodManager)
-                getSystemService(Context.INPUT_METHOD_SERVICE);
-
-        if (inputManager != null ) {
-            inputManager.hideSoftInputFromWindow(view.getWindowToken(),
-                    InputMethodManager.HIDE_NOT_ALWAYS);
-        }
-
-        ConnectivityManager connMgr = (ConnectivityManager)
-                getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = null;
-        if (connMgr != null) {
-            networkInfo = connMgr.getActiveNetworkInfo();
-        }
-
-        if (networkInfo != null && networkInfo.isConnected()
-                && queryString.length() != 0) {
-            new FetchBook(mTitleText, mAuthorText).execute(queryString);
-            mAuthorText.setText("");
-            mTitleText.setText(R.string.loading);
-        } else {
-            if (queryString.length() == 0) {
-                mAuthorText.setText("");
-                mTitleText.setText(R.string.no_search_term);
-            } else {
-                mAuthorText.setText("");
-                mTitleText.setText(R.string.no_network);
-            }
-        }
-
-
+        // Fetch Book
+        mBookViewModel.fetchBook(queryString, view);
     }
 }

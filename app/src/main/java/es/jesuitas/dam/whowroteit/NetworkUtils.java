@@ -31,13 +31,16 @@ public class NetworkUtils {
         String bookJSONString = null;
 
         try {
+            // Build request URI
             Uri builtURI = Uri.parse(BOOK_BASE_URL).buildUpon()
                     .appendQueryParameter(QUERY_PARAM, queryString)
                     .appendQueryParameter(MAX_RESULTS, "10")
                     .appendQueryParameter(PRINT_TYPE, "books")
                     .build();
+            // Convert URI to URL object
             URL requestURL = new URL(builtURI.toString());
 
+            // Open URL connection and make the request
             urlConnection = (HttpURLConnection) requestURL.openConnection();
             urlConnection.setRequestMethod("GET");
             urlConnection.connect();
@@ -51,6 +54,7 @@ public class NetworkUtils {
             // Use a StringBuilder to hold the incoming response.
             StringBuilder builder = new StringBuilder();
 
+            // Read the input line-by-line into the string
             String line;
             while ((line = reader.readLine()) != null) {
                 builder.append(line);
@@ -65,11 +69,13 @@ public class NetworkUtils {
                 return null;
             }
 
+            // Convert the StringBuilder object to a String
             bookJSONString = builder.toString();
 
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
+            // close the connection and the BufferedReader
             if (urlConnection != null) {
                 urlConnection.disconnect();
             }
